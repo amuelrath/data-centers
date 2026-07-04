@@ -2,12 +2,13 @@ import asyncio
 import logging
 import re
 
-from models import ProjectExtractModel
 from playwright.async_api import Locator as AsyncLocator
 from playwright.async_api import Page as AsyncPage
 from playwright.sync_api import Locator as SyncLocator
 from playwright.sync_api import Page as SyncPage
 from pydantic import ValidationError
+
+from models import ProjectExtractModel
 from utils.constants import PROJECT_EXTRACT_SCRIPT, SIDEBAR_SPECS_SEL, SPACE_RE
 
 # Parsers for ListingUrlScraper
@@ -134,6 +135,22 @@ async def extract_sqft(page: AsyncPage) -> float | None:
             total_space_sqft = float(m.group(1).replace(",", ""))
 
     return total_space_sqft
+
+
+async def extract_is_404(page: AsyncPage) -> bool:
+    """
+    Returns true if the listing we are on is a 404
+
+    :param page: The Playwright ``Page`` object.
+    :return: True if we have reached a 404
+    """
+    msg_404 = page.locator("h1.text-4xl.font-semibold.text-black.mb-4")
+
+    if await msg_404.count() == 0:
+        return False
+
+    msg = await msg_404.inner_text()
+    return msg.strip() == "Oops...Page not found"
 
 
 # Parsers for ArticleScraper

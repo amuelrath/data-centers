@@ -6,7 +6,7 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from config import PlaywrightScraperConfig
 from scrapers.base import BaseAsyncScraper
 from utils import JsonlCheckpointWriter, async_gather_bounded
-from utils.parsers import extract_listing, extract_map_button
+from utils.parsers import extract_is_404, extract_listing, extract_map_button
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,11 @@ class ListingScraper(BaseAsyncScraper):
         """
         page = await self.new_page()
         await page.goto(url)
+
+        if await extract_is_404(page):
+            logger.debug(f"404 Found. Skipping listing {url}.")
+            return None
+
         await self._click_map_tab(page)
 
         try:
