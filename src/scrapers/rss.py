@@ -52,8 +52,8 @@ class RssScraper:
             if blocked:
                 # stop trying to scrape
                 logger.error("Possibly rate limited!!")
-                print("You may have been rate limited by Google!")
-                sys.exit(1)
+                print("You have been rate limited by Google! Please wait a few hours.")
+                return sys.exit(1)
 
             # sleep to avoid hammering Google RSS.
             sleep_norm(
@@ -61,6 +61,8 @@ class RssScraper:
                 self.config.batch.jitter_s_mu,
                 self.config.batch.jitter_s_sigma,
             )
+
+        return None
 
     def _dispatch_batch(self, batch: list[dict[str, Any]]) -> bool:
         """
