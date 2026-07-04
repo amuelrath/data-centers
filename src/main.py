@@ -19,9 +19,8 @@ def main():
     setup_logging()
     logger.info("****STARTING NEW RUN****")
 
-    run_listing_url_scraper()
-
     print("Scraping Listings... (May take a while)")
+    run_listing_url_scraper()
     asyncio.run(run_listing_scraper_async())
 
     print("Scraping Rss Feeds... (May take a while)")
