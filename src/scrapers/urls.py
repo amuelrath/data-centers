@@ -117,7 +117,6 @@ class ListingUrlScraper(BaseSyncScraper):
 
         # handles dedup for entire run
         seen_this_run = set(saved_listing_urls)
-        seen_this_run.update(self._scrape_one(self._page))
 
         def _write_rows(listing_urls: list[str]) -> None:
             """Writes all unseen URLs."""
