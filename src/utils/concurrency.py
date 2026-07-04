@@ -16,6 +16,8 @@ async def async_gather_bounded(
     coro_fn: Callable[[T], Awaitable[R]],
     max_concurrency: int,
     on_error: Callable[[T, Exception], None] | None = None,
+    show_progress: bool = False,
+    desc: str | None = None,
 ) -> list[R | None]:
     """
     Run coro_fn(item) over items with bounded concurrency.
@@ -23,6 +25,7 @@ async def async_gather_bounded(
     Returns results in the same order as items; failed items are None.
     """
     sem = asyncio.Semaphore(max_concurrency)
+    pbar = tqdm(total=len(items), desc=desc, disable=not show_progress)
 
     async def _bound(item: T) -> R | None:
         async with sem:
@@ -33,10 +36,15 @@ async def async_gather_bounded(
                 if on_error:
                     on_error(item, e)
                 result = None
+            finally:
+                pbar.update(1)
 
             return result
 
-    return await asyncio.gather(*(_bound(item) for item in items))
+    try:
+        return await asyncio.gather(*(_bound(item) for item in items))
+    finally:
+        pbar.close()
 
 
 def thread_map_bounded(
@@ -44,6 +52,8 @@ def thread_map_bounded(
     fn: Callable[[T], R],
     max_workers: int,
     on_error: Callable[[T, Exception], None] | None = None,
+    show_progress: bool = False,
+    desc: str | None = None,
 ) -> list[R | None]:
     """
     Run fn(item) over items using a bounded thread pool.
@@ -59,15 +69,18 @@ def thread_map_bounded(
             executor.submit(fn, item): idx for idx, item in enumerate(items)
         }
 
-        for future in as_completed(future_to_index):
-            idx = future_to_index[future]
-            item = items[idx]
-            try:
-                results[idx] = future.result()
-            except Exception as e:
-                logger.warning(f"Failed on item {item!r}: {e!r}")
-                if on_error:
-                    on_error(item, e)
-                results[idx] = None
+        with tqdm(total=len(items), desc=desc, disable=not show_progress) as pbar:
+            for future in as_completed(future_to_index):
+                idx = future_to_index[future]
+                item = items[idx]
+                try:
+                    results[idx] = future.result()
+                except Exception as e:
+                    logger.warning(f"Failed on item {item!r}: {e!r}")
+                    if on_error:
+                        on_error(item, e)
+                    results[idx] = None
+                finally:
+                    pbar.update(1)
 
     return results

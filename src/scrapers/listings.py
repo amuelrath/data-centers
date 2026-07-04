@@ -44,6 +44,8 @@ class ListingScraper(BaseAsyncScraper):
             items=remaining_urls,
             coro_fn=self._scrape_one,
             max_concurrency=self.config.max_concurrency,
+            show_progress=self.config.show_progress,
+            desc="Scraping Listings",
         )
 
         logger.info("Done scraping all listings!")
