@@ -95,7 +95,7 @@ class ListingUrlScraper(BaseSyncScraper):
 
         :param start_page: The paginated page number to begin scraping on (1-indexed).
         :param end_page: The paginated page number to stop scraping on (inclusive).
-        :param already_scraped: urls already saved, to avoid duplicate writes.
+        :param saved_listing_urls: urls already saved, to avoid duplicate writes.
         :return: None
         :raises RuntimeError: If start_page or end_page is out of bounds, or start_page > end_page.
         """
@@ -119,7 +119,7 @@ class ListingUrlScraper(BaseSyncScraper):
         seen_this_run = set(saved_listing_urls)
 
         def _write_rows(listing_urls: list[str]) -> None:
-            """Writes all unseen URLs."""
+            """Writes all unseen URLs and adds them to seen_this_run."""
             new_listing_urls = [u for u in listing_urls if u not in seen_this_run]
             if not new_listing_urls:
                 logger.debug(f"Found no new URLs on {self._current_paginated_page}")
