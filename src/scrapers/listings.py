@@ -1,15 +1,12 @@
-import asyncio
-import json
 import logging
-from pathlib import Path
 
 from playwright.async_api import Page as AsyncPage
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
+from config import PlaywrightScraperConfig
 from scrapers.base import BaseAsyncScraper
 from utils import JsonlCheckpointWriter, async_gather_bounded
 from utils.parsers import extract_listing, extract_map_button
-
-from config import PlaywrightScraperConfig
 
 logger = logging.getLogger(__name__)
 
