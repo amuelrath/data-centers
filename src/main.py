@@ -2,12 +2,11 @@ import asyncio
 import logging
 from pathlib import Path
 
+from config import ArticleScraperConfig, PlaywrightScraperConfig
 from scrapers import ListingScraper, ListingUrlScraper
 from scrapers.articles import ArticleScraper
 from scrapers.rss import RssScraper
 from utils import JsonlCheckpointWriter
-
-from config import ArticleScraperConfig, PlaywrightScraperConfig
 
 OUT_PATH = Path("data")
 
@@ -21,8 +20,14 @@ def main():
     logger.info("****STARTING NEW RUN****")
 
     run_listing_url_scraper()
+
+    print("Scraping Listings... (May take a while)")
     asyncio.run(run_listing_scraper_async())
+
+    print("Scraping Rss Feeds... (May take a while)")
     run_rss_scraper()
+
+    print("Scaping Articles... (May take a while)")
     asyncio.run(run_article_scraper_async())
 
     print("Scraping Complete!")
