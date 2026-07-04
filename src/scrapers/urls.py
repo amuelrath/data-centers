@@ -4,14 +4,14 @@ import sys
 from playwright.sync_api import Locator, Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from tqdm.auto import tqdm
+
+from config import PlaywrightScraperConfig
 from utils.checkpoint import JsonlCheckpointWriter
 from utils.parsers import (
     extract_anchors_from_location_grid,
     extract_buttons,
     extract_page_pagination,
 )
-
-from config import PlaywrightScraperConfig
 
 from .base import BaseSyncScraper
 
@@ -133,6 +133,7 @@ class ListingUrlScraper(BaseSyncScraper):
             )
 
         # scrape + write the start page
+        logger.debug("Scraping first page...")
         self._goto_specific_paginated_page(start_page)
         _write_rows(self._scrape_one(self._page))
 

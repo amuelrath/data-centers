@@ -6,14 +6,14 @@ from typing import Any
 from urllib.parse import quote
 
 import feedparser
-from models import ArticleModel, ProjectModel
 from pydantic import ValidationError
 from tqdm.auto import tqdm
-from utils import JsonlCheckpointWriter, sleep_norm, thread_map_bounded
-from utils.constants import BLOCKED_SOURCES, EXCLUDED_SEARCH_TERMS
 
 from config import RssScraperConfig
 from exceptions import RateLimitedError
+from models import ArticleModel, ProjectModel
+from utils import JsonlCheckpointWriter, sleep_norm, thread_map_bounded
+from utils.constants import BLOCKED_SOURCES, EXCLUDED_SEARCH_TERMS
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +42,6 @@ class RssScraper:
         ):
             batch = remaining_projects[i : i + self.config.batch.size]
             blocked = self._dispatch_batch(batch)
-
-            logger.info(f"Batch {i} complete!")
 
             if blocked:
                 # stop trying to scrape
