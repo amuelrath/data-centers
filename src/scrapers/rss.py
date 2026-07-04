@@ -27,11 +27,17 @@ class RssScraper:
 
     def scrape_all(self):
         remaining_projects = self.writer.load_remaining()
-        logger.info(f"Found {len(remaining_projects)} projects to scrape!")
 
         if len(remaining_projects) == 0:
             logger.info("Nothing to scrape.")
-            return
+            return None
+        else:
+            num_completed = len(self.writer.load_completed_keys())
+            print(f"Found {num_completed} existing feeds!")
+            logger.info(f"Found {num_completed} existing feeds!")
+
+            print(f"{len(remaining_projects)} feeds left to scrape!")
+            logger.info(f"{len(remaining_projects)}! feeds left to scrape")
 
         for i in tqdm(
             range(0, len(remaining_projects), self.config.batch.size),
