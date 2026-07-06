@@ -3,6 +3,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from filelock import FileLock
+
 
 class JsonlCheckpointWriter:
     """
@@ -48,12 +50,13 @@ class JsonlCheckpointWriter:
         self.key_field = key_field
         self._lock = threading.Lock()
 
-        # same-file mode: in and out are the same
         self.in_path = Path(in_path) if in_path else (Path(path) if path else None)
         self.out_path = Path(out_path) if out_path else Path(path)
 
         self.out_path.parent.mkdir(parents=True, exist_ok=True)
         self.out_path.touch(exist_ok=True)
+
+        self._file_lock = FileLock(str(self.out_path) + ".lock")
 
     def load_completed_keys(self) -> set[str]:
         """
@@ -103,11 +106,12 @@ class JsonlCheckpointWriter:
         """
         items = records if isinstance(records, list) else [records]
         with self._lock:
-            with self.out_path.open("a") as f:
-                for item in items:
-                    if item is not None:  # no empty writes
-                        f.write(json.dumps(item, default=str) + "\n")
-                f.flush()
+            with self._file_lock:
+                with self.out_path.open("a") as f:
+                    for item in items:
+                        if item is not None:
+                            f.write(json.dumps(item, default=str) + "\n")
+                    f.flush()
 
     @staticmethod
     def _read_jsonl(p: Path) -> list[dict[str, Any]]:
