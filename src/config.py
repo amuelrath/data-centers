@@ -78,3 +78,11 @@ class ArticleScraperConfig:
     playwright: PlaywrightScraperConfig = field(default_factory=PlaywrightScraperConfig)
     batch: BatchConfig = field(default_factory=BatchConfig)
     debug: DebugConfig = field(default_factory=DebugConfig)
+
+
+@dataclass
+class NewsScraperConfig:
+    show_progress: bool = True
+    searchapi_key: str | None = None
+    max_workers: int = 10
+    batch: BatchConfig = field(default_factory=BatchConfig)

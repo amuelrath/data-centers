@@ -1,14 +1,16 @@
 import asyncio
 import logging
+import os
 from pathlib import Path
 
-from config import ArticleScraperConfig, PlaywrightScraperConfig
-from scrapers import ListingScraper, ListingUrlScraper
-from scrapers.articles import ArticleScraper
-from scrapers.rss import RssScraper
+from dotenv import load_dotenv
+
+from config import ArticleScraperConfig, NewsScraperConfig, PlaywrightScraperConfig
+from scrapers import ArticleScraper, ListingScraper, ListingUrlScraper, NewsScraper
 from utils import JsonlCheckpointWriter
 
 OUT_PATH = Path("data")
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +25,8 @@ def main():
     run_listing_url_scraper()
     asyncio.run(run_listing_scraper_async())
 
-    print("Scraping Rss Feeds... (May take a while)")
-    run_rss_scraper()
+    print("Scraping News Feeds... (May take a while)")
+    run_feed_scraper()
 
     print("Scaping Articles... (May take a while)")
     asyncio.run(run_article_scraper_async())
@@ -62,14 +64,17 @@ async def run_listing_scraper_async() -> None:
         await scraper.scrape_all()
 
 
-def run_rss_scraper() -> None:
+def run_feed_scraper() -> None:
     """Fetches RSS feeds about each datacenter"""
+
     rss_writer = JsonlCheckpointWriter(
         in_path=OUT_PATH / "projects.jsonl",
         out_path=OUT_PATH / "headlines.jsonl",
         key_field="slug",
     )
-    scraper = RssScraper(rss_writer)
+    scraper = NewsScraper(
+        rss_writer, config=NewsScraperConfig(searchapi_key=os.getenv("SEARCH_API_KEY"))
+    )
     scraper.scrape_all()
 
 
@@ -78,13 +83,13 @@ async def run_article_scraper_async() -> None:
     article_writer = JsonlCheckpointWriter(
         in_path=OUT_PATH / "headlines.jsonl",
         out_path=OUT_PATH / "articles.jsonl",
-        key_field="rss_url",
+        key_field="url",
     )
 
     async with ArticleScraper(
         article_writer,
         config=ArticleScraperConfig(
-            playwright=PlaywrightScraperConfig(max_concurrency=5)
+            playwright=PlaywrightScraperConfig(max_concurrency=3)
         ),
     ) as scraper:
         await scraper.scrape_all()

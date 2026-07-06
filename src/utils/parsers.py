@@ -87,10 +87,7 @@ async def extract_listing(page: AsyncPage) -> ProjectExtractModel | None:
         logging.error(f"Unknown exception occurred while trying to extract data! {e}")
         return None
 
-    details, total_space_sqft = await asyncio.gather(
-        extract_details(page),
-        extract_sqft(page),
-    )
+    total_space_sqft = await extract_sqft(page)
 
     return {
         "slug": page.url.split(".com/")[1],
@@ -99,20 +96,13 @@ async def extract_listing(page: AsyncPage) -> ProjectExtractModel | None:
         "company": data.company,
         "total_space_sqft": total_space_sqft,
         "capacity_mw": data.total_power_mw,
-        "power_density": data.power_density,
-        "details": details,
         "latitude": data.latitude,
         "longitude": data.longitude,
         "city": data.city,
         "state": data.state,
         "company_slug": data.company_slug,
+        "error": None,
     }
-
-
-async def extract_details(page: AsyncPage) -> str | None:
-    paragraphs = await page.locator("#contentDescription p").all_inner_texts()
-    text = " ".join(p.strip() for p in paragraphs if p.strip())
-    return text or None
 
 
 async def extract_sqft(page: AsyncPage) -> float | None:

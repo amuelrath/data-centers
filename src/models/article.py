@@ -5,7 +5,10 @@ from pydantic import BaseModel
 
 class ArticleModel(BaseModel):
     slug: str | None = None
-    content: str | None = None
-    rss_url: str | None = None
-    decoded_url: str | None = None
-    error: Literal["flagged", "timeout", "topn", "no_articles", "unknown"] | None = None
+    title: str | None = None
+    description: str | None = None
+    url: str | None = None
+    published: str | None = None
+    source: str | None = None
+    text: str | None = None
+    error: Literal["flagged", "timeout", "no_articles", "unknown"] | None = None

@@ -1,9 +1,12 @@
 import logging
+from typing import Any
 
 from playwright.async_api import Page as AsyncPage
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+from pydantic.v1 import ValidationError
 
 from config import PlaywrightScraperConfig
+from models import ProjectModel
 from scrapers.base import BaseAsyncScraper
 from utils import JsonlCheckpointWriter, async_gather_bounded
 from utils.parsers import extract_is_404, extract_listing, extract_map_button
@@ -60,24 +63,47 @@ class ListingScraper(BaseAsyncScraper):
         """
         page = await self.new_page()
         await page.goto(url)
+        slug = url.split(".com/")[1]
 
         if await extract_is_404(page):
             logger.debug(f"404 Found. Skipping listing {url}.")
+            # add it to the projects.jsonl so we don't try it again
+            self._finalize(ProjectModel(slug=slug, listing_url=url, error="404"))
             return None
 
         await self._click_map_tab(page)
 
         try:
-            extracted_listing = await extract_listing(page)
+            project = await extract_listing(page)
         except PlaywrightTimeoutError:
             logger.warning(f"Timed out while scraping listing {url}!")
+            # do NOT add it to projects.jsonl. we can try again.
             return None
         finally:
             await page.close()
 
-        # save the listing
-        self.writer.write(extracted_listing)
+        try:
+            # validate the extracted listing
+            project = ProjectModel.model_validate(project)
+        except ValidationError:
+            logger.warning(f"Failed to validate extracted listing for {url}")
 
+        # save the listing
+        return self._finalize(project=project)
+
+    def _finalize(
+        self,
+        project: ProjectModel,
+        *,
+        error: str | None = None,
+    ) -> None:
+        """
+        Applies final field updates to a project and writes it out.
+        """
+        if error is not None:
+            project.error = error
+
+        self.writer.write(project.model_dump())
         return None
 
     @staticmethod
