@@ -31,8 +31,8 @@ class DebugConfig:
 @dataclass
 class BatchConfig:
     size: int = 20
-    # normally distributed 5-80s wait between batches
-    sleep_s_base: int | float = 5.0
+    # normally distributed 30-100s wait between batches
+    sleep_s_base: int | float = 30.0
     jitter_s_mu: int | float = 10.0
     jitter_s_sigma: int | float = 20.0
 
@@ -61,14 +61,6 @@ class PlaywrightScraperConfig:
     timeout_ms: int = 15_000
     max_concurrency: int = 10
     context: PlaywrightContextConfig = field(default_factory=PlaywrightContextConfig)
-    debug: DebugConfig = field(default_factory=DebugConfig)
-
-
-@dataclass
-class RssScraperConfig:
-    show_progress: bool = True
-    max_workers: int = 5
-    batch: BatchConfig = field(default_factory=BatchConfig)
     debug: DebugConfig = field(default_factory=DebugConfig)
 
 
