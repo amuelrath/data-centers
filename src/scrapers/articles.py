@@ -7,11 +7,15 @@ from playwright.async_api import Page as AsyncPage
 from playwright.async_api import Request as AsyncRequest
 from playwright.async_api import Route as AsyncRoute
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
-from pydantic import ValidationError
 from tqdm.auto import tqdm
 
 from config import ArticleScraperConfig
-from models import ArticleModel
+from models import (
+    ArticleError,
+    ArticleSuccess,
+    HeadlineAdapter,
+    HeadlineSuccess,
+)
 from scrapers.base import BaseAsyncScraper
 from utils import JsonlCheckpointWriter, async_gather_bounded
 from utils.constants import BOT_FLAGS, COOKIE_BANNER_REMOVE_SCRIPT
@@ -33,7 +37,9 @@ class ArticleScraper(BaseAsyncScraper):
         self.writer = writer
 
     async def scrape_all(self):
-        remaining_articles = self.writer.load_remaining()
+        remaining_articles = [
+            HeadlineAdapter.validate_python(a) for a in self.writer.load_remaining()
+        ]
         if len(remaining_articles) == 0:
             logger.info("Nothing to scrape.")
             return
@@ -70,7 +76,7 @@ class ArticleScraper(BaseAsyncScraper):
 
         return None
 
-    async def _scrape_one(self, article: dict[str, Any]) -> None:
+    async def _scrape_one(self, article: HeadlineSuccess) -> None:
         """
         Validates article data and writes article text
         scraped from the site.
@@ -81,26 +87,27 @@ class ArticleScraper(BaseAsyncScraper):
         :param article: One row of output from NewsScraper
         :return: None
         """
-        try:
-            article = ArticleModel.model_validate(article)
-
-        except ValidationError as e:
-            logger.error(f"Failed to validate article data {e}")
-            return None
 
         page = await self.new_page()
         await page.route("**/*", self._block_resources)
 
         try:
-            await page.goto(article.url, wait_until="domcontentloaded")
+            await page.goto(article.rss_url, wait_until="domcontentloaded")
             await page.wait_for_load_state("domcontentloaded")
             html_content = await page.content()
         except PlaywrightTimeoutError:
             logger.warning(f"Timed out while waiting for {page.url}!")
-            return self._finalize(article, error="timeout")
+            return self.writer.write(
+                ArticleError(
+                    slug=article.slug,
+                    rss_url=article.rss_url,
+                    decoded_url=page.url,
+                    error="timeout",
+                ).model_dump()
+            )
         except Exception as e:
             logger.error(f"Unhandled Exception: {e}!")
-            return self._finalize(article, error="unknown")
+            return None
 
         article_text = extract_clean_text(
             trafilatura.extract(
@@ -115,28 +122,26 @@ class ArticleScraper(BaseAsyncScraper):
         )
 
         if self._is_flagged_as_bot(article_text):
-            return self._finalize(article, error="flagged")
+            return self.writer.write(
+                ArticleError(
+                    slug=article.slug,
+                    rss_url=article.rss_url,
+                    decoded_url=page.url,
+                    error="flagged",
+                )
+            )
 
-        return self._finalize(article, text=article_text)
-
-    def _finalize(
-        self,
-        article: ArticleModel,
-        *,
-        error: str | None = None,
-        text: str | None = None,
-    ) -> None:
-        """
-        Applies final field updates to an article and writes it out.
-        """
-
-        if error is not None:
-            article.error = error
-        if text is not None:
-            article.text = text
-
-        self.writer.write(article.model_dump())
-        return None
+        return self.writer.write(
+            ArticleSuccess(
+                slug=article.slug,
+                title=article.title,
+                text=article_text,
+                rss_url=article.rss_url,
+                decoded_url=page.url,
+                published=article.published,
+                source=article.source,
+            ).model_dump()
+        )
 
     @staticmethod
     async def _block_resources(route: AsyncRoute, request: AsyncRequest) -> None:

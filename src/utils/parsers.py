@@ -8,7 +8,7 @@ from playwright.sync_api import Locator as SyncLocator
 from playwright.sync_api import Page as SyncPage
 from pydantic import ValidationError
 
-from models import ProjectExtractModel
+from models import ProjectExtractModel, ProjectSuccess
 from utils.constants import PROJECT_EXTRACT_SCRIPT, SIDEBAR_SPECS_SEL, SPACE_RE
 
 # Parsers for ListingUrlScraper
@@ -63,7 +63,7 @@ async def extract_map_button(page: AsyncPage) -> AsyncLocator:
     return map_button
 
 
-async def extract_listing(page: AsyncPage) -> ProjectExtractModel | None:
+async def extract_listing(page: AsyncPage) -> ProjectSuccess | None:
     """
     Extracts and validates the details from a datacenters.com site listing.
 
@@ -79,7 +79,7 @@ async def extract_listing(page: AsyncPage) -> ProjectExtractModel | None:
 
     try:
         raw = await page.evaluate(PROJECT_EXTRACT_SCRIPT)
-        data = ProjectExtractModel.model_validate(raw)
+        extract = ProjectExtractModel.model_validate(raw)
     except ValidationError:
         logging.error("Failed to validate extracted JSON!")
         return None
@@ -89,20 +89,19 @@ async def extract_listing(page: AsyncPage) -> ProjectExtractModel | None:
 
     total_space_sqft = await extract_sqft(page)
 
-    return {
-        "slug": page.url.split(".com/")[1],
-        "listing_url": page.url,
-        "name": data.name,
-        "company": data.company,
-        "total_space_sqft": total_space_sqft,
-        "capacity_mw": data.total_power_mw,
-        "latitude": data.latitude,
-        "longitude": data.longitude,
-        "city": data.city,
-        "state": data.state,
-        "company_slug": data.company_slug,
-        "error": None,
-    }
+    return ProjectSuccess(
+        slug=page.url.split(".com/")[1],
+        listing_url=page.url,
+        name=extract.name,
+        company=extract.company,
+        total_power_mw=extract.total_power_mw,
+        latitude=extract.latitude,
+        longitude=extract.longitude,
+        city=extract.city,
+        state=extract.state,
+        company_slug=extract.company_slug,
+        total_space_sqft=total_space_sqft,
+    )
 
 
 async def extract_sqft(page: AsyncPage) -> float | None:

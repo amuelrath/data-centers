@@ -1,31 +1,34 @@
-from typing import Literal
+from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, HttpUrl, TypeAdapter, field_validator
 
 
-class ProjectModel(BaseModel):
-    """Complete Project information."""
+class ProjectSuccess(BaseModel):
+    status: Literal["ok"] = "ok"
+    slug: str
+    name: str
+    company: str
+    company_slug: str
+    latitude: float
+    longitude: float
+    total_power_mw: float | None = None  # legitimately sometimes unknown
+    city: str
+    state: str
+    total_space_sqft: float | None = None
+    listing_url: HttpUrl
 
-    slug: str | None = None
-    name: str | None = None
-    company: str | None = None
-    company_slug: str | None = None
-    latitude: float | None = None
-    longitude: float | None = None
-    total_power_mw: float | None = None
-    city: str | None = None
-    state: str | None = None
-    total_space_sqft: float | int | None = None
-    listing_url: str | None = None
-    error: Literal["404", "timeout", "unknown"] | None = None
+
+class ProjectError(BaseModel):
+    status: Literal["error"] = "error"
+    slug: str
+    listing_url: HttpUrl | None = None
+    error: Literal["404", "timeout", "unknown"]
 
 
 class ProjectExtractModel(BaseModel):
     """
-    Partial ProjectModel which validates data extracted from React.
-
-    DOES NOT include data scraped directly from markup.
-
+    Partial ProjectModel populated from JS-evaluated React state.
+    Intentionally partial. markup-sourced fields are merged in later.
     """
 
     name: str | None = None
@@ -36,16 +39,43 @@ class ProjectExtractModel(BaseModel):
     total_power_mw: float | None = None
     city: str | None = None
     state: str | None = None
-    error: str | None = None
+    error: Literal["404", "timeout", "unknown"] | None = None
 
-    @field_validator("total_power_mw", mode="before")
+    @field_validator("total_power_mw", "latitude", "longitude", mode="before")
     @classmethod
-    def zero_to_none(cls, v: str | float | None) -> float | None:
-        """Coerces numeric strings to float, treating 0/0.0 as missing data."""
+    def blank_or_nan_to_none(cls, v):
         if v is None or v == "":
             return None
         try:
             f = float(v)
         except (TypeError, ValueError):
             return None
-        return None if f == 0 else f
+        if f != f:  # NaN check. JS sometimes serializes NaN as the string "NaN"
+            return None
+        return f
+
+    @field_validator("name", "company", "company_slug", "city", "state", mode="before")
+    @classmethod
+    def blank_str_to_none(cls, v):
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
+    @field_validator("total_power_mw", mode="before")
+    @classmethod
+    def zero_to_none(cls, v):
+        if v is None or v == "":
+            return None
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            return None
+        return None if f != f or f == 0 else f
+
+
+ExtractAdapter = TypeAdapter(ProjectExtractModel)
+ProjectResult = Annotated[
+    Union[ProjectSuccess, ProjectError],
+    Field(discriminator="status"),
+]
+ProjectAdapter = TypeAdapter(ProjectResult)
