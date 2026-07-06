@@ -1,4 +1,4 @@
 from .articles import ArticleScraper
-from .gnews import NewsScraper
 from .listings import ListingScraper
+from .rss import RssScraper
 from .urls import ListingUrlScraper

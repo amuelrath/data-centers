@@ -5,8 +5,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from config import ArticleScraperConfig, NewsScraperConfig, PlaywrightScraperConfig
-from scrapers import ArticleScraper, ListingScraper, ListingUrlScraper, NewsScraper
+from config import ArticleScraperConfig, PlaywrightScraperConfig
+from scrapers import ArticleScraper, ListingScraper, ListingUrlScraper, RssScraper
 from utils import JsonlCheckpointWriter
 
 OUT_PATH = Path("data")
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     """Execute the main pipeline"""
-    print("Beginning Scraper...")
+    print("Beginning Scraper...\n")
     setup_logging()
     logger.info("****STARTING NEW RUN****")
 
@@ -75,9 +75,7 @@ def run_feed_scraper() -> None:
         out_path=OUT_PATH / "headlines.jsonl",
         key_field="slug",
     )
-    scraper = NewsScraper(
-        rss_writer, config=NewsScraperConfig(searchapi_key=os.getenv("SEARCH_API_KEY"))
-    )
+    scraper = RssScraper(rss_writer)
     scraper.scrape_all()
 
 

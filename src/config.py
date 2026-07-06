@@ -78,3 +78,13 @@ class NewsScraperConfig:
     searchapi_key: str | None = None
     max_workers: int = 10
     batch: BatchConfig = field(default_factory=BatchConfig)
+
+
+@dataclass
+class RssScraperConfig:
+    show_progress: bool = True
+    max_workers: int = 5
+    timeout_s: int = 10
+    jitter_min_s: int = 1
+    jitter_max_s: int = 3
+    batch: BatchConfig = field(default_factory=BatchConfig)
