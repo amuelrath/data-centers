@@ -42,9 +42,14 @@ class RssScraper:
 
         :return: None
         """
-        remaining_projects = [
+        validated = [
             ProjectAdapter.validate_python(d) for d in self.writer.load_remaining()
         ]
+        remaining_projects = [p for p in validated if isinstance(p, ProjectSuccess)]
+        skipped_errors = len(validated) - len(remaining_projects)
+
+        if skipped_errors:
+            logger.info(f"Skipping {skipped_errors} projects with prior errors.")
 
         if len(remaining_projects) == 0:
             logger.info("Nothing to scrape.")
