@@ -24,12 +24,15 @@ def main():
     print("Scraping Listings... (May take a while)")
     run_listing_url_scraper()
     asyncio.run(run_listing_scraper_async())
+    print("\n")
 
     print("Scraping News Feeds... (May take a while)")
     run_feed_scraper()
+    print("\n")
 
-    print("Scaping Articles... (May take a while)")
+    print("Scraping Articles... (May take a while)")
     asyncio.run(run_article_scraper_async())
+    print("\n")
 
     print("Scraping Complete!")
 
