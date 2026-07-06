@@ -87,7 +87,7 @@ class RssScraper:
 
         :return: None
         """
-        # wait...
+        # wait...just an extra precaution to avoid getting rate limited
         time.sleep(random.uniform(self.config.jitter_min_s, self.config.jitter_max_s))
 
         # build the request
@@ -119,7 +119,7 @@ class RssScraper:
 
         feed = feedparser.parse(res.content)
 
-        if len(feed) == 0:
+        if len(feed.entries) == 0:
             logger.debug(f"No headlines returned for {project.slug}.")
             # write a blank row so that we don't refetch this later
             return self.writer.write(
