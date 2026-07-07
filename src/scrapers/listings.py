@@ -32,13 +32,7 @@ class ListingScraper(BaseAsyncScraper):
 
     async def scrape_all(self):
         logger.info("Scraping all listings...")
-        remaining_urls = self.writer.load_remaining_keys()
-        logger.info(f"Found {len(remaining_urls)} listings to scrape!")
-
-        # nothing left to scrape
-        if len(remaining_urls) == 0:
-            logger.info("Nothing to scrape.")
-            return
+        remaining_urls = self._load_tasks()
 
         logger.debug("Dispatching scrapers...")
         await async_gather_bounded(
@@ -50,6 +44,7 @@ class ListingScraper(BaseAsyncScraper):
         )
 
         logger.info("Done scraping all listings!")
+        return None
 
     async def _scrape_one(self, url: str) -> dict[str, str | None] | None:
         """
@@ -84,6 +79,18 @@ class ListingScraper(BaseAsyncScraper):
 
         # save the listing
         return self.writer.write(project.model_dump())
+
+    def _load_tasks(self) -> list[str]:
+        remaining_urls = self.writer.load_remaining_keys()
+        if len(remaining_urls) == 0:
+            logger.info("Nothing to scrape.")
+            return []
+        else:
+            num_completed = len(self.writer.load_completed_keys())
+            print(f"Found {len(num_completed)} existing listings!")
+            print(f"{len(remaining_urls)} listings left to scrape!")
+
+        return remaining_urls
 
     @staticmethod
     async def _click_map_tab(page: AsyncPage) -> None:

@@ -26,11 +26,26 @@ from utils.clients import (
     launch_async_client,
     launch_sync_client,
 )
+from utils.constants import STEALTH_INIT_SCRIPT
 
-from config import PlaywrightScraperConfig
+logger = logging.getLogger(__name__)
 
 
-class BaseSyncScraper:
+class BaseScraper(ABC):
+    @abstractmethod
+    def scrape_all(self) -> None:
+        pass
+
+    @abstractmethod
+    def _scrape_one(self, *args, **kwargs) -> None:
+        pass
+
+    @abstractmethod
+    def _load_tasks(self) -> list[Any]:
+        pass
+
+
+class BaseSyncScraper(BaseScraper):
     """
     Owns the Sync Playwright lifecycle. Subclasses focus on scraping logic only.
 
@@ -57,6 +72,38 @@ class BaseSyncScraper:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         close_sync_client(self._playwright, self._browser, self.context)
 
+    def new_context(
+        self,
+        close_previous: bool = True,
+        use_proxy: bool = True,
+        config: PlaywrightContextConfig | None = None,
+    ) -> SyncBrowserContext:
+        """
+        Creates and sets a new browser context.
+
+        :param config: A new PlaywrightContextConfig. If not specified uses self.config.
+        :param use_proxy: Whether to use a decodo proxy.
+        :param close_previous: Whether to close the previous context.
+        :return: SyncBrowserContext
+        """
+        if close_previous and self.context is not None:
+            self.context.close()
+            logger.debug("Previous sync context torn down.")
+
+        cfg = {
+            k: v
+            for k, v in dataclasses.asdict(self.config.context or config).items()
+            if v is not None
+        }
+        if use_proxy:
+            proxy = build_proxy(returns="playwright")
+            cfg["proxy"] = proxy
+
+        context = self._browser.new_context(**cfg)
+        context.add_init_script(STEALTH_INIT_SCRIPT)
+        self.context = context
+        return context
+
     def new_page(self) -> SyncPage:
         """
         Creates a new page and waits for 'domcontentloaded'.
@@ -68,8 +115,17 @@ class BaseSyncScraper:
 
         return page
 
+    def scrape_all(self, *args, **kwargs) -> None:
+        raise NotImplementedError("scrape_all() not implemented")
 
-class BaseAsyncScraper:
+    def _scrape_one(self, *args, **kwargs) -> None:
+        raise NotImplementedError("_scrape_one() not implemented")
+
+    def _load_tasks(self, *args, **kwargs) -> list[Any]:
+        raise NotImplementedError("_load_tasks() not implemented")
+
+
+class BaseAsyncScraper(BaseScraper):
     """
     Owns the Async Playwright lifecycle. Subclasses focus on scraping logic only.
 
@@ -106,3 +162,12 @@ class BaseAsyncScraper:
         await page.wait_for_load_state("domcontentloaded")
 
         return page
+
+    async def scrape_all(self, *args, **kwargs) -> None:
+        raise NotImplementedError("scrape_all() not implemented")
+
+    async def _scrape_one(self, *args, **kwargs) -> None:
+        raise NotImplementedError("_scrape_one() not implemented")
+
+    async def _load_tasks(self, *args, **kwargs) -> list[Any]:
+        raise NotImplementedError("_load_tasks() not implemented")

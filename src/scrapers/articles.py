@@ -38,19 +38,7 @@ class ArticleScraper(BaseAsyncScraper):
         self.writer = writer
 
     async def scrape_all(self):
-        remaining_articles = [
-            HeadlineAdapter.validate_python(a) for a in self.writer.load_remaining()
-        ]
-        if len(remaining_articles) == 0:
-            logger.info("Nothing to scrape.")
-            return
-        else:
-            num_completed = len(self.writer.load_completed_keys())
-            print(f"Found {num_completed} existing articles!")
-            logger.info(f"Found {len(remaining_articles)} existing articles!")
-
-            print(f"{len(remaining_articles)} articles left to scrape!")
-            logger.info(f"{len(remaining_articles)} articles left to scrape")
+        remaining_urls = self._load_tasks()
 
         for i in tqdm(
             range(0, len(remaining_urls), self.settings.batch.size),
@@ -120,27 +108,28 @@ class ArticleScraper(BaseAsyncScraper):
                 decoded_url=page.url,
             ).model_dump()
         )
+        return await page.close()
 
-    @staticmethod
-    async def _block_resources(route: AsyncRoute, request: AsyncRequest) -> None:
-        if request.resource_type in ["image", "media", "font", "stylesheet"]:
-            await route.abort()
+    def _load_tasks(self) -> list[str]:
+        validated = [
+            HeadlineAdapter.validate_python(d) for d in self.writer.load_remaining()
+        ]
+        remaining_headlines = [s for s in validated if isinstance(s, HeadlineSuccess)]
+        remaining_urls = {str(h.rss_url) for h in remaining_headlines}
+        skipped = {e.slug for e in validated if isinstance(e, HeadlineError)}
+
+        if skipped:
+            logger.info(f"Skipping {len(skipped)} articles with prior errors.")
+
+        if len(remaining_urls) == 0:
+            logger.info("Nothing to scrape.")
+            return []
         else:
-            await route.continue_()
+            num_completed = len(self.writer.load_completed_keys())
+            print(f"\nFound {num_completed} existing feeds!")
+            print(f"{len(remaining_urls)} articles left to scrape!")
 
-    @staticmethod
-    async def _remove_cookie_banner(page: AsyncPage) -> None:
-        """
-        Tries to remove the cookie banner.
-        Cookie banners interfere with trafilatura extraction.
-
-        :param page: The Playwright ``Page`` object.
-        :return: None
-        """
-
-        await page.evaluate(COOKIE_BANNER_REMOVE_SCRIPT)
-
-        return None
+        return list(remaining_urls)
 
     @staticmethod
     def _is_flagged_as_bot(txt: str | None) -> bool:

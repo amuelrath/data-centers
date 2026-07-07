@@ -54,14 +54,11 @@ class ListingUrlScraper(BaseSyncScraper):
         """
         logger.info("Scraping all URLs...")
 
-        saved_listing_urls = self.writer.load_completed_keys()
-        logger.info(f"Found {len(saved_listing_urls)} previously scraped URLs!")
-
+        saved_listing_urls = self._load_tasks()
         self._goto_main_page_and_setup()
 
         # determine where we need to start
         start_page = (len(saved_listing_urls) // self._num_urls_per_page) + 1
-        logger.debug(f"Starting on page {start_page}")
 
         # scrape the remaining pages
         end_page = (
@@ -134,7 +131,7 @@ class ListingUrlScraper(BaseSyncScraper):
         # scrape + write the start page
         logger.debug("Scraping first page...")
         self._goto_specific_paginated_page(start_page)
-        _write_rows(self._scrape_one(self._page))
+        _write_rows(self._scrape_one())
 
         # scrape + write the remaining pages
         num_navs = end_page - start_page
@@ -145,7 +142,7 @@ class ListingUrlScraper(BaseSyncScraper):
         ):
             self._goto_next_paginated_page()
             logger.debug(f"Scraping page {self._current_paginated_page}...")
-            _write_rows(self._scrape_one(self._page))
+            _write_rows(self._scrape_one())
 
     def _goto_specific_paginated_page(self, page_num: int) -> None:
         """
@@ -275,8 +272,7 @@ class ListingUrlScraper(BaseSyncScraper):
         items = extract_anchors_from_location_grid(self._page)
         self._num_urls_per_page = len(items)
 
-    @staticmethod
-    def _scrape_one(page: Page) -> list[str]:
+    def _scrape_one(self) -> list[str]:
         """
         Extracts the URLs from each ``<a/>`` within the location-grid.
 
@@ -284,10 +280,17 @@ class ListingUrlScraper(BaseSyncScraper):
         :return: A list of URLs from the current page's location-grid.
         """
 
-        anchors = extract_anchors_from_location_grid(page)
+        anchors = extract_anchors_from_location_grid(self._page)
         listing_urls = [
             BASE_URL + listing_url
             for a in anchors
             if (listing_url := a.get_attribute("href"))
         ]
         return list(listing_urls)
+
+    def _load_tasks(self) -> list[str]:
+        saved_listing_urls = self.writer.load_completed_keys()
+        logger.info(f"Found {len(saved_listing_urls)} existing listings urls!")
+        print(f"Found {len(saved_listing_urls)} existing listings urls!")
+
+        return saved_listing_urls

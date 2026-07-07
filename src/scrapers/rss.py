@@ -2,9 +2,7 @@ import logging
 import math
 import os
 import random
-import time
 from datetime import datetime
-from typing import List
 from urllib.parse import quote
 
 import feedparser
@@ -19,15 +17,16 @@ from models import (
     ProjectAdapter,
     ProjectSuccess,
 )
+from scrapers.base import BaseScraper
 from utils import JsonlCheckpointWriter, build_proxy, thread_map_bounded
 from utils.constants import EXCLUDED_SEARCH_TERMS, LIFECYCLE_TERMS, USER_AGENTS
 
 logger = logging.getLogger(__name__)
 
 
-class RssScraper:
+class RssScraper(BaseScraper):
     """
-    Uses ``gnews`` to fetch RSS feeds for each project.
+    Fetches RSS feeds for each project.
     """
 
     def __init__(
@@ -38,29 +37,12 @@ class RssScraper:
 
     def scrape_all(self):
         """
-        Scrapes and writes RSS feed data.
+        Scrapes and writes RSS feed data in batches.
 
         :return: None
         """
-        validated = [
-            ProjectAdapter.validate_python(d) for d in self.writer.load_remaining()
-        ]
-        remaining_projects = [p for p in validated if isinstance(p, ProjectSuccess)]
-        skipped_errors = len(validated) - len(remaining_projects)
-
-        if skipped_errors:
-            logger.info(f"Skipping {skipped_errors} projects with prior errors.")
-
-        if len(remaining_projects) == 0:
-            logger.info("Nothing to scrape.")
-            return None
-        else:
-            num_completed = len(self.writer.load_completed_keys())
-            print(f"Found {num_completed} existing feeds!")
-            logger.info(f"Found {num_completed} existing feeds!")
-
-            print(f"{len(remaining_projects)} feeds left to scrape!")
-            logger.info(f"{len(remaining_projects)} feeds left to scrape")
+        logger.info("Scraping all RSS feeds...")
+        remaining_projects = self._load_tasks()
 
         for i in tqdm(
             range(0, len(remaining_projects), self.config.batch.size),
@@ -69,27 +51,18 @@ class RssScraper:
             desc="RSS: Processing Batch",
         ):
             batch = remaining_projects[i : i + self.config.batch.size]
-            self._dispatch_batch(batch)
+            thread_map_bounded(
+                items=batch, fn=self._scrape_one, max_workers=self.config.max_workers
+            )
 
         return None
 
-    def _dispatch_batch(self, batch: List[ProjectSuccess]) -> None:
-        """
-        :param batch: list of ProjectSuccess to fetch feeds for
-        :return: None
-        """
-        thread_map_bounded(
-            items=batch, fn=self._scrape_one, max_workers=self.config.max_workers
-        )
-
     def _scrape_one(self, project: ProjectSuccess) -> None:
         """
+        Scrapes and writes the RSS feeed for one project.
 
         :return: None
         """
-        # wait...just an extra precaution to avoid getting rate limited
-        time.sleep(random.uniform(self.config.jitter_min_s, self.config.jitter_max_s))
-
         # build the request
         url = self._build_query_url(project)
         proxies, user_agent = self._build_request_params()
@@ -107,7 +80,7 @@ class RssScraper:
             if e.response.status_code >= 400:
                 # was probably a rate limiting error.
                 # do not write anything so we retry later.
-                logger.critical(f"Rate Limited by Google RSS! UA: {user_agent}")
+                logger.critical("Rate Limited by Google RSS!")
                 print("Rate limited by Google RSS. Please wait a few hours...")
                 # kill all threads
                 os._exit(1)
@@ -147,6 +120,26 @@ class RssScraper:
 
         # write the data
         return self.writer.write(articles)
+
+    def _load_tasks(self) -> list[ProjectSuccess]:
+        validated = [
+            ProjectAdapter.validate_python(d) for d in self.writer.load_remaining()
+        ]
+        remaining_projects = [p for p in validated if isinstance(p, ProjectSuccess)]
+        skipped_projects = len(validated) - len(remaining_projects)
+
+        if skipped_projects:
+            logger.info(f"Skipping {skipped_projects} projects with prior errors.")
+
+        if len(remaining_projects) == 0:
+            logger.info("Nothing to scrape.")
+            return []
+        else:
+            num_completed = len(self.writer.load_completed_keys())
+            print(f"\nFound {num_completed} existing feeds!")
+            print(f"{len(remaining_projects)} feeds left to scrape!")
+
+        return remaining_projects
 
     @staticmethod
     def _build_query_url(project: ProjectSuccess) -> str:
