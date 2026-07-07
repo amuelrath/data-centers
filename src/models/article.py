@@ -18,7 +18,7 @@ class HeadlineSuccess(BaseModel):
 class HeadlineError(BaseModel):
     status: Literal["error"] = "error"
     slug: str
-    error: Literal["timeout", "no_articles", "unknown"]
+    error: Literal["no_articles"]
 
 
 class ArticleSuccess(BaseModel):
@@ -37,7 +37,10 @@ class ArticleError(BaseModel):
     slug: str
     rss_url: HttpUrl
     decoded_url: HttpUrl | None = None
-    error: Literal["flagged", "timeout", "no_articles", "unknown"]
+    error: Literal[
+        "flagged",
+        "empty",
+    ]
 
 
 HeadlineResult = Annotated[
