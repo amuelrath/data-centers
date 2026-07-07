@@ -1,5 +1,11 @@
 import re
 
+# Debug
+
+DEBUG_ENABLED = False
+
+
+# RSS Query Construction & Filtering
 EXCLUDED_SEARCH_TERMS = [
     "crypto",
     "merger",
@@ -76,9 +82,14 @@ BOT_FLAGS = [
     "performing security verification",
     "making sure you're not a bot ",
 ]
+
+# datacenters.com Parsing
+
 SIDEBAR_INFO_SEL = ".flex.flex-col.gap-2\\.5.p-7.text-black.bg-gray-50.rounded-b-md"
 SIDEBAR_SPECS_SEL = ".flex.flex-col.gap-2\\.5"
 SPACE_RE = re.compile(r"([\d,.]+)\s*sqft total space")
+
+# Other
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -108,7 +119,49 @@ USER_AGENTS = [
     "Mozilla/5.0 (iPad; CPU OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12F69 Safari/600.1.4",
     "Mozilla/5.0 (Windows NT 6.1; rv:40.0) Gecko/20100101 Firefox/40.0",
 ]
+PW_HEADERS = {
+    "Accept-Language": "en-US,en;q=0.9",
+}
 
+PW_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
+# language=JavaScript
+STEALTH_INIT_SCRIPT = """
+delete Object.getPrototypeOf(navigator).webdriver;
+
+Object.defineProperty(navigator, 'plugins', {
+    get: () => [1, 2, 3, 4, 5].map(() => ({ name: 'Chrome PDF Plugin' }))
+});
+
+Object.defineProperty(navigator, 'languages', {
+    get: () => ['en-US', 'en']
+});
+
+window.chrome = { runtime: {} };
+
+const originalQuery = window.navigator.permissions.query;
+window.navigator.permissions.query = (parameters) => (
+    parameters.name === 'notifications'
+        ? Promise.resolve({ state: Notification.permission })
+        : originalQuery(parameters)
+);
+
+Object.defineProperty(navigator, 'plugins', {
+    get: () => {
+        const pluginArray = Object.create(PluginArray.prototype);
+        const plugins = [
+            { name: 'PDF Viewer', filename: 'internal-pdf-viewer' },
+            { name: 'Chrome PDF Viewer', filename: 'internal-pdf-viewer' },
+            { name: 'Chromium PDF Viewer', filename: 'internal-pdf-viewer' },
+        ];
+        plugins.forEach((p, i) => (pluginArray[i] = p));
+        pluginArray.length = plugins.length;
+        pluginArray.item = (i) => pluginArray[i];
+        pluginArray.namedItem = (name) => plugins.find(p => p.name === name);
+        return pluginArray;
+    }
+});
+"""
 
 # language=JavaScript
 PROJECT_EXTRACT_SCRIPT = """
@@ -143,6 +196,7 @@ PROJECT_EXTRACT_SCRIPT = """
                          total_power_mw: locationProps.totalPowerMw ?? null,
                          city: locationProps.locationDemographic?.city?.slug ?? null,
                          state: locationProps.locationDemographic?.state?.slug ?? null,
+                         created_at: locationProps.createdAt ?? null,
                          error: null
                      };
                  } catch (e) {
@@ -157,19 +211,3 @@ COOKIE_BANNER_REMOVE_SCRIPT = """
         .querySelectorAll('[class*="cookie"], [class*="consent"], [id*="cookie"], [id*="consent"]')
         .forEach(el => el.remove());
     """
-PW_HEADERS = {
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "cross-site",
-    "Sec-Fetch-User": "?1",
-    "Upgrade-Insecure-Requests": "1",
-}
-PW_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/120.0.0.0 Safari/537.36"
-)
-DEBUG_ENABLED = False

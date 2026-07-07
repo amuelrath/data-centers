@@ -1,23 +1,6 @@
 from dataclasses import dataclass, field
 
-HEADERS = {
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "cross-site",
-    "Sec-Fetch-User": "?1",
-    "Upgrade-Insecure-Requests": "1",
-}
-
-USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/120.0.0.0 Safari/537.36"
-)
-
-DEBUG_ENABLED = False
+from utils.constants import DEBUG_ENABLED, PW_HEADERS, PW_USER_AGENT
 
 
 @dataclass
@@ -31,16 +14,14 @@ class DebugConfig:
 @dataclass
 class BatchConfig:
     size: int = 20
-    # normally distributed 30-100s wait between batches
-    sleep_s_base: int | float = 30.0
-    jitter_s_mu: int | float = 10.0
-    jitter_s_sigma: int | float = 20.0
 
 
 @dataclass
 class PlaywrightContextConfig:
-    user_agent: str | None = USER_AGENT
-    extra_http_headers: dict[str, str] | None = field(default_factory=lambda: HEADERS)
+    user_agent: str | None = PW_USER_AGENT
+    extra_http_headers: dict[str, str] | None = field(
+        default_factory=lambda: PW_HEADERS
+    )
     timezone_id: str = "America/Los_Angeles"
     viewport: dict[str, int] = field(
         default_factory=lambda: {"width": 1920, "height": 1080}
@@ -73,18 +54,8 @@ class ArticleScraperConfig:
 
 
 @dataclass
-class NewsScraperConfig:
-    show_progress: bool = True
-    searchapi_key: str | None = None
-    max_workers: int = 10
-    batch: BatchConfig = field(default_factory=BatchConfig)
-
-
-@dataclass
 class RssScraperConfig:
     show_progress: bool = True
-    max_workers: int = 5
+    max_workers: int = 8
     timeout_s: int = 10
-    jitter_min_s: int = 1
-    jitter_max_s: int = 3
     batch: BatchConfig = field(default_factory=BatchConfig)

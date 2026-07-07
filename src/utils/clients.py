@@ -10,6 +10,7 @@ from playwright.sync_api import Playwright as SyncPlaywright
 from playwright.sync_api import sync_playwright
 
 from config import PlaywrightContextConfig
+from utils.constants import STEALTH_INIT_SCRIPT
 
 
 def launch_sync_client(
@@ -22,7 +23,7 @@ def launch_sync_client(
     context = browser.new_context(
         **{k: v for k, v in dataclasses.asdict(config).items() if v is not None}
     )
-    context.add_init_script("delete Object.getPrototypeOf(navigator).webdriver")
+    context.add_init_script(STEALTH_INIT_SCRIPT)
 
     return playwright, browser, context
 
@@ -48,7 +49,7 @@ async def launch_async_client(
     context = await browser.new_context(
         **{k: v for k, v in dataclasses.asdict(config).items() if v is not None}
     )
-    await context.add_init_script("delete Object.getPrototypeOf(navigator).webdriver")
+    await context.add_init_script(STEALTH_INIT_SCRIPT)
 
     return playwright, browser, context
 
