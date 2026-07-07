@@ -1,7 +1,6 @@
-import asyncio
 import logging
-import re
 
+import reverse_geocoder as rg
 from playwright.async_api import Locator as AsyncLocator
 from playwright.async_api import Page as AsyncPage
 from playwright.sync_api import Locator as SyncLocator
@@ -66,6 +65,7 @@ async def extract_map_button(page: AsyncPage) -> AsyncLocator:
 async def extract_listing(page: AsyncPage) -> ProjectSuccess | None:
     """
     Extracts and validates the details from a datacenters.com site listing.
+    Additionally geocodes by lat/lon to get county.
 
     Note::
 
@@ -88,6 +88,10 @@ async def extract_listing(page: AsyncPage) -> ProjectSuccess | None:
         return None
 
     total_space_sqft = await extract_sqft(page)
+    county = rg.get(
+        (extract.latitude, extract.longitude),
+        mode=1,  # single threaded kd tree
+    )["admin2"]
 
     return ProjectSuccess(
         slug=page.url.split(".com/")[1],
@@ -98,9 +102,11 @@ async def extract_listing(page: AsyncPage) -> ProjectSuccess | None:
         latitude=extract.latitude,
         longitude=extract.longitude,
         city=extract.city,
+        county=county,
         state=extract.state,
         company_slug=extract.company_slug,
         total_space_sqft=total_space_sqft,
+        created_at=extract.created_at,
     )
 
 
@@ -140,17 +146,3 @@ async def extract_is_404(page: AsyncPage) -> bool:
 
     msg = await msg_404.inner_text()
     return msg.strip() == "Oops...Page not found"
-
-
-# Parsers for ArticleScraper
-
-
-def extract_clean_text(txt: str | None) -> str | None:
-    """Remove extra junk included in trafilatura extractions"""
-    if not txt:
-        return None
-
-    txt = txt.replace("\x0a", " ")
-
-    # removes just non-ascii characters
-    return re.sub(r"[^\x20-\x7E\n]", "", txt).strip()
