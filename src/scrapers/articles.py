@@ -1,12 +1,9 @@
+import asyncio
 import logging
 import math
-from typing import Any
 
 from gnews import GNews
 from playwright.async_api import Page as AsyncPage
-from playwright.async_api import Request as AsyncRequest
-from playwright.async_api import Route as AsyncRoute
-from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from tqdm.auto import tqdm
 
 from config import ArticleScraperConfig
@@ -20,7 +17,6 @@ from models import (
 from scrapers.base import BaseAsyncScraper
 from utils import JsonlCheckpointWriter, async_gather_bounded
 from utils.constants import BOT_FLAGS, COOKIE_BANNER_REMOVE_SCRIPT
-from utils.parsers import extract_clean_text
 
 logger = logging.getLogger(__name__)
 
@@ -89,17 +85,11 @@ class ArticleScraper(BaseAsyncScraper):
         if self._is_flagged_as_bot(article_text):
             self.writer.write(
                 ArticleError(
-                    slug=article.slug,
-                    rss_url=article.rss_url,
-                    decoded_url=page.url,
-                    error="flagged",
-                )
                     rss_url=url, decoded_url=page.url, error="flagged"
                 ).model_dump()
             )
             return await page.close()
 
-        return self.writer.write(
         # data was good: write
         self.writer.write(
             ArticleSuccess(

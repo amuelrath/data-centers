@@ -13,8 +13,10 @@ class ProjectSuccess(BaseModel):
     longitude: float
     total_power_mw: float | None = None  # legitimately sometimes unknown
     city: str
+    county: str
     state: str
     total_space_sqft: float | None = None
+    created_at: str
     listing_url: HttpUrl
 
 
@@ -31,14 +33,15 @@ class ProjectExtractModel(BaseModel):
     Intentionally partial. markup-sourced fields are merged in later.
     """
 
-    name: str | None = None
-    company: str | None = None
-    company_slug: str | None = None
-    latitude: float | None = None
-    longitude: float | None = None
+    name: str
+    company: str
+    company_slug: str
+    latitude: float
+    longitude: float
     total_power_mw: float | None = None
-    city: str | None = None
-    state: str | None = None
+    city: str
+    state: str
+    created_at: str
     error: Literal["404", "timeout", "unknown"] | None = None
 
     @field_validator("total_power_mw", "latitude", "longitude", mode="before")
