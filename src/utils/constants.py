@@ -11,10 +11,42 @@ EXCLUDED_SEARCH_TERMS = [
     "obituary",
     "food",
     "travel",
-    "revenue",
-    "earnings",
+    "earnings call",
+    "quarterly earnings",
     "ipo",
 ]
+
+LIFECYCLE_TERMS = [
+    "proposed",
+    "announced",
+    '"land purchase"',
+    '"acquires land"',
+    "rezoning",
+    '"site plan"',
+    "permit",
+    "groundbreaking",
+    '"breaks ground"',
+    "construction",
+    "operational",
+    "online",
+    "energized",
+    '"now open"',
+    "delayed",
+    "cancelled",
+    "halt",
+    "paused",
+    "opposed",
+    "opposition",
+    "protest",
+    "lawsuit",
+    "appeal",
+    "moratorium",
+    "rejected",
+    "denied",
+]
+
+# Article Filtering
+
 BLOCKED_SOURCES = [
     "LinkedIn",
     "Datacenters.com",

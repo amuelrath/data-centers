@@ -20,7 +20,7 @@ from models import (
     ProjectSuccess,
 )
 from utils import JsonlCheckpointWriter, build_proxy, thread_map_bounded
-from utils.constants import EXCLUDED_SEARCH_TERMS, USER_AGENTS
+from utils.constants import EXCLUDED_SEARCH_TERMS, LIFECYCLE_TERMS, USER_AGENTS
 
 logger = logging.getLogger(__name__)
 
@@ -153,22 +153,14 @@ class RssScraper:
         """
         Builds the Google RSS URL.
 
-        :param project: ProjectModel
+        :param project: ProjectSuccess
         :return: The URL
         """
-        base_phrase = (
-            f'"{project.company}" "data center" '
-            f"(proposed OR announced OR opposed OR groundbreaking OR "
-            f'construction OR "breaks ground" OR live OR delayed '
-            f"cancelled OR halt OR permit OR rezoning OR protest)"
-        )
-
-        exclude_phrase = " ".join([f"-{term}" for term in EXCLUDED_SEARCH_TERMS])
-        locale_phrase = (
-            f'"{project.city.replace("-", " ")}" {project.state.replace("-", " ")}'
-        )
-
-        query = f"{base_phrase} {locale_phrase} {exclude_phrase}"
+        base_terms = f'"{project.company}" ("data center" OR "datacenter")'
+        lifecycle_terms = "(" + " OR ".join(LIFECYCLE_TERMS) + ")"
+        locale_terms = f'"{project.city.replace("-", " ")}" "{project.county}" {project.state.replace("-", " ")}'
+        exclude_terms = " ".join([f"-{term}" for term in EXCLUDED_SEARCH_TERMS])
+        query = f"{base_terms} {lifecycle_terms} {locale_terms} {exclude_terms}"
 
         return f"https://news.google.com/rss/search?q={quote(query)}&hl=en-US&gl=US&ceid=US:en"
 
@@ -182,7 +174,7 @@ class RssScraper:
 
         :return: ``proxies``, ``user_agent``
         """
-        proxies = build_proxy()
+        proxies = build_proxy(returns="requests")
         user_agent = random.choice(USER_AGENTS)
 
         return proxies, user_agent
