@@ -84,7 +84,7 @@ async def run_article_scraper_async() -> None:
     article_writer = JsonlCheckpointWriter(
         in_path=OUT_PATH / "headlines.jsonl",
         out_path=OUT_PATH / "articles.jsonl",
-        key_field="url",
+        key_field="rss_url",
     )
 
     async with ArticleScraper(
