@@ -1,4 +1,7 @@
+import dataclasses
 import logging
+from abc import ABC, abstractmethod
+from typing import Any, Literal
 
 from playwright.async_api import (
     Browser as AsyncBrowser,
@@ -20,6 +23,9 @@ from playwright.sync_api import Page as SyncPage
 from playwright.sync_api import (
     Playwright as SyncPlaywright,
 )
+
+from config import PlaywrightContextConfig, PlaywrightScraperConfig
+from utils import build_proxy
 from utils.clients import (
     close_async_client,
     close_sync_client,
