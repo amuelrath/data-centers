@@ -6,7 +6,9 @@ from typing import Any
 
 from filelock import FileLock
 
+logger = logging.getLogger(__name__)
 logging.getLogger("filelock").setLevel(logging.WARNING)
+
 
 class JsonlCheckpointWriter:
     """
@@ -70,6 +72,8 @@ class JsonlCheckpointWriter:
                 keys.add(record[self.key_field])
             except KeyError:
                 continue
+
+        logger.info(f"Found {len(keys)} completed keys!")
         return keys
 
     def load_remaining_keys(self) -> list[str]:
@@ -86,6 +90,8 @@ class JsonlCheckpointWriter:
         """
         Read in_path, return the list of source records whose key is NOT
         already present in out_path (i.e. not yet completed).
+
+        Note: Does NOT deduplicate according to ``self.key_field``!
 
         Requires `in_path` to have been provided.
         """
