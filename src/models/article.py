@@ -23,18 +23,13 @@ class HeadlineError(BaseModel):
 
 class ArticleSuccess(BaseModel):
     status: Literal["ok"] = "ok"
-    slug: str
-    title: str
     rss_url: HttpUrl
     decoded_url: HttpUrl
-    published: datetime
-    source: str
     text: str
 
 
 class ArticleError(BaseModel):
     status: Literal["error"] = "error"
-    slug: str
     rss_url: HttpUrl
     decoded_url: HttpUrl | None = None
     error: Literal[
