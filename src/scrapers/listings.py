@@ -46,13 +46,12 @@ class ListingScraper(BaseAsyncScraper):
         logger.info("Done scraping all listings!")
         return None
 
-    async def _scrape_one(self, url: str) -> dict[str, str | None] | None:
+    async def _scrape_one(self, url: str) -> None:
         """
         Scrapes and writes one listing.
 
         :param url: The URL of the listing.
         :return: None
-        :raise: PlaywrightTimeoutError
         """
         page = await self.new_page()
         await page.goto(url)
