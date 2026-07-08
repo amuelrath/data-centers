@@ -90,7 +90,7 @@ async def run_article_scraper_async() -> None:
     async with ArticleScraper(
         article_writer,
         config=ArticleScraperConfig(
-            playwright=PlaywrightScraperConfig(max_concurrency=3)
+            playwright=PlaywrightScraperConfig(max_concurrency=5)
         ),
     ) as scraper:
         await scraper.scrape_all()
