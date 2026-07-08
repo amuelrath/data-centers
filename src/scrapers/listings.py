@@ -86,7 +86,7 @@ class ListingScraper(BaseAsyncScraper):
             return []
         else:
             num_completed = len(self.writer.load_completed_keys())
-            print(f"Found {len(num_completed)} existing listings!")
+            print(f"Found {num_completed} existing listings!")
             print(f"{len(remaining_urls)} listings left to scrape!")
 
         return remaining_urls
