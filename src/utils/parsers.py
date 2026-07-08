@@ -77,11 +77,12 @@ async def extract_listing(page: AsyncPage) -> ProjectSuccess | None:
 
     await page.wait_for_selector(".leaflet-container", state="attached")
 
+    raw = None
     try:
         raw = await page.evaluate(PROJECT_EXTRACT_SCRIPT)
         extract = ProjectExtractModel.model_validate(raw)
     except ValidationError:
-        logging.error("Failed to validate extracted JSON!")
+        logging.error(f"Failed to validate extracted JSON!: {str(raw or None)}")
         return None
     except Exception as e:
         logging.error(f"Unknown exception occurred while trying to extract data! {e}")
@@ -104,6 +105,10 @@ async def extract_listing(page: AsyncPage) -> ProjectSuccess | None:
         city=extract.city,
         county=county,
         state=extract.state,
+        description=extract.description,
+        full_address=extract.full_address,
+        gross_colocation_space=extract.gross_colocation_space,
+        gross_building_size=extract.gross_building_size,
         company_slug=extract.company_slug,
         total_space_sqft=total_space_sqft,
         created_at=extract.created_at,

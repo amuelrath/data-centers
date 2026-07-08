@@ -196,6 +196,10 @@ PROJECT_EXTRACT_SCRIPT = """
                          total_power_mw: locationProps.totalPowerMw ?? null,
                          city: locationProps.locationDemographic?.city?.slug ?? null,
                          state: locationProps.locationDemographic?.state?.slug ?? null,
+                         description: locationProps.description ?? null,
+                         gross_building_size: locationProps.grossBuildingSize ?? null,
+                         gross_colocation_space: locationProps.grossColocationSpace ?? null,
+                         full_address: locationProps.fullAddress ?? null,
                          created_at: locationProps.createdAt ?? null,
                          error: null
                      };
