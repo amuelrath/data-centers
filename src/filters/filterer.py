@@ -30,28 +30,28 @@ class ArticleFilterer:
 
     @staticmethod
     def _has_company_mention(row: pd.Series):
-        if row.get("company").lower() in row.get("text", "").lower():
+        if str(row.get("company")).lower() in row.get("text", "").lower():
             return True
 
         return False
 
     @staticmethod
     def _has_state_mention(row: pd.Series):
-        if row.get("state").lower() in row.get("text", "").lower():
+        if str(row.get("state")).lower() in row.get("text", "").lower():
             return True
 
         return False
 
     @staticmethod
     def _has_county_mention(row: pd.Series):
-        if row.get("state").lower() in row.get("text", "").lower():
+        if str(row.get("county")).lower() in row.get("text", "").lower():
             return True
 
         return False
 
     @staticmethod
     def _has_city_mention(row: pd.Series):
-        if row.get("city").lower() in row.get("text", "").lower():
+        if str(row.get("city")).lower() in row.get("text", "").lower():
             return True
 
         return False
