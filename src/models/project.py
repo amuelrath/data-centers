@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Literal, Union
 
 from pydantic import BaseModel, Field, HttpUrl, TypeAdapter, field_validator
@@ -20,7 +21,7 @@ class ProjectSuccess(BaseModel):
     gross_building_size: int | None = None
     gross_colocation_space: int | None = None
     total_space_sqft: float | None = None
-    created_at: str
+    created_at: str | datetime
     listing_url: HttpUrl
 
 
