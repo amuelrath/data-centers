@@ -49,46 +49,48 @@ def setup_logging():
 
 def run_listing_url_scraper() -> None:
     """Scrapes URLs for Datacenter site listings"""
-    listing_url_writer = JsonlCheckpointWriter(
-        path=OUT_PATH / "listing_urls.jsonl", key_field="listing_url"
-    )
-    with ListingUrlScraper(listing_url_writer) as scraper:
+    with ListingUrlScraper(
+        JsonlCheckpointWriter(
+            path=OUT_PATH / "listing_urls.jsonl", key_field="listing_url"
+        )
+    ) as scraper:
         scraper.scrape_all()
 
 
 async def run_listing_scraper_async() -> None:
     """Scrapes details about each datacenter"""
-    listing_writer = JsonlCheckpointWriter(
-        in_path=OUT_PATH / "listing_urls.jsonl",
-        out_path=OUT_PATH / "projects.jsonl",
-        key_field="listing_url",
-    )
-    async with ListingScraper(listing_writer) as scraper:
+    async with ListingScraper(
+        JsonlCheckpointWriter(
+            in_path=OUT_PATH / "listing_urls.jsonl",
+            out_path=OUT_PATH / "projects.jsonl",
+            key_field="listing_url",
+        )
+    ) as scraper:
         await scraper.scrape_all()
 
 
 def run_feed_scraper() -> None:
     """Fetches RSS feeds about each datacenter"""
 
-    rss_writer = JsonlCheckpointWriter(
-        in_path=OUT_PATH / "projects.jsonl",
-        out_path=OUT_PATH / "headlines.jsonl",
-        key_field="slug",
+    scraper = RssScraper(
+        JsonlCheckpointWriter(
+            in_path=OUT_PATH / "projects.jsonl",
+            out_path=OUT_PATH / "headlines.jsonl",
+            key_field="slug",
+        )
     )
-    scraper = RssScraper(rss_writer)
     scraper.scrape_all()
 
 
 async def run_article_scraper_async() -> None:
     """Scrapes articles from the RSS feed"""
-    article_writer = JsonlCheckpointWriter(
-        in_path=OUT_PATH / "headlines.jsonl",
-        out_path=OUT_PATH / "articles.jsonl",
-        key_field="rss_url",
-    )
 
     async with ArticleScraper(
-        article_writer,
+        JsonlCheckpointWriter(
+            in_path=OUT_PATH / "headlines.jsonl",
+            out_path=OUT_PATH / "articles.jsonl",
+            key_field="rss_url",
+        ),
         config=ArticleScraperConfig(
             playwright=PlaywrightScraperConfig(max_concurrency=5)
         ),
